@@ -78,27 +78,40 @@ async function render() {
     list.innerHTML = '<div class="col-span-full text-center py-10">☁️ 正在連線雲端資料庫...</div>';
     
     try {
-        const response = await fetch(API_URL, { method: 'GET' });
+        // 在網址後加上隨機參數，防止瀏覽器讀取舊的暫存檔
+        const finalUrl = API_URL + "?nocache=" + new Date().getTime();
+        
+        // 這裡不需要加 mode: 'no-cors'，因為我們要讀取 JSON 資料
+        const response = await fetch(finalUrl);
+        
+        if (!response.ok) throw new Error('連線回應不正常');
+        
         items = await response.json();
         
+        if (items.length === 0) {
+            list.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400">目前清單空空的，快去新增吧！</div>';
+            return;
+        }
+
         list.innerHTML = '';
         let total = 0;
         items.forEach((item, index) => {
-            total += Number(item.price);
+            total += Number(item.price || 0);
             const symbol = item.currency === "JPY" ? "¥" : "$";
             list.innerHTML += `
-                <div class="item-card bg-white rounded-3xl shadow-lg overflow-hidden border border-gray-100">
+                <div class="item-card bg-white rounded-3xl shadow-lg overflow-hidden border border-gray-100 flex flex-col">
                     <img src="${item.img || 'https://via.placeholder.com/400x300'}" class="w-full h-40 object-cover">
-                    <div class="p-4">
-                        <h3 class="font-bold text-lg">${item.name}</h3>
+                    <div class="p-4 flex-grow">
+                        <h3 class="font-bold text-lg text-gray-800">${item.name}</h3>
                         <p class="text-xl font-black text-red-500">${symbol} ${Number(item.price).toLocaleString()}</p>
-                        <a href="${item.url}" target="_blank" class="text-blue-500 text-xs underline block mt-2">商品連結</a>
+                        <a href="${item.url}" target="_blank" class="text-blue-500 text-xs underline block mt-2">查看連結</a>
                     </div>
                 </div>`;
         });
         document.getElementById('totalPrice').innerText = total.toLocaleString();
     } catch (e) {
-        list.innerHTML = '<div class="text-red-500 text-center col-span-full">讀取失敗，請確認 Google 部署權限設定為「所有人」</div>';
+        console.log("錯誤詳情:", e); // 這行會把真正的錯誤原因印在 F12 控制台
+        list.innerHTML = '<div class="text-red-500 text-center col-span-full">讀取失敗，請確認 Google 網址正確且權限已開</div>';
     }
 }
 
@@ -142,4 +155,5 @@ render();
 </body>
 
 </html>
+
 
