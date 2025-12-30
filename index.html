@@ -3,174 +3,591 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>購物清單 </title>
+    <title>我的雲端購物助手 - 專業進階版</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
-        .item-card { transition: transform 0.3s ease; }
-        .item-card:hover { transform: translateY(-5px); }
-        .preview-img { width: 100%; height: 160px; object-fit: cover; border-radius: 12px; display: none; margin-top: 10px; }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
+            color: #1e293b; 
+        }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+        .item-card { 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            cursor: pointer; 
+            border-radius: 2rem; 
+            overflow: hidden; 
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .item-card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 25px 30px -10px rgba(0, 0, 0, 0.08); 
+        }
+        .hidden-view { display: none; }
+        .modal { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        
+        .custom-checkbox {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .custom-checkbox:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .custom-checkbox:checked::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .strikethrough { text-decoration: line-through; color: #94a3b8; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
-    <div class="max-w-5xl mx-auto px-4 py-10">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl font-extrabold text-gray-800 mb-2"> 購物清單💰</h1>
-        </header>
-
-        <div class="glass p-8 rounded-3xl shadow-xl mb-12 border border-white">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <input type="text" id="itemName" placeholder="商品名稱" class="border-0 bg-gray-100 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none">
-                
-                <div class="flex space-x-2">
-                    <select id="currency" class="border-0 bg-gray-100 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none w-1/3">
-                        <option value="TWD">台幣 (NTD)</option>
-                        <option value="JPY">日幣 (JPY)</option>
-                    </select>
-                    <input type="number" id="itemPrice" placeholder="金額" class="border-0 bg-gray-100 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none w-2/3">
-                </div>
-
-                <input type="text" id="itemUrl" placeholder="商品連結網址" class="border-0 bg-gray-100 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none">
-                
-                <div class="md:col-span-1">
-                    <label class="block text-xs text-gray-400 mb-1 px-1">上傳商品照片</label>
-                    <input type="file" id="itemFile" accept="image/*" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 w-full">
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <span class="text-xs text-gray-400 whitespace-nowrap">開始</span>
-                    <input type="date" id="startDate" class="border-0 bg-gray-100 p-3 rounded-xl w-full text-sm">
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-xs text-gray-400 whitespace-nowrap">截止</span>
-                    <input type="date" id="endDate" class="border-0 bg-gray-100 p-3 rounded-xl w-full text-sm">
-                </div>
-            </div>
-            <button onclick="addItem()" class="mt-6 block mx-auto w-48 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90 transition transform active:scale-95">
-                加入清單
+    <nav class="glass sticky top-0 z-50 border-b border-white/50 px-6 py-5 mb-8">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <h1 id="navTitle" class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">🛍️ 購物助手</h1>
+            <button id="backBtn" onclick="showMainView()" class="hidden-view bg-white/80 hover:bg-white text-gray-600 px-5 py-2.5 rounded-2xl text-sm font-bold shadow-sm transition flex items-center border border-gray-100">
+                <span class="mr-2">←</span> 返回首頁
             </button>
         </div>
-        <div class="flex justify-between items-end mb-8 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-    <div>
-        <h2 class="text-2xl font-bold text-gray-800">清單內容</h2>
-        <p class="text-gray-400 text-xs mt-1">資料已與雲端同步</p>
-    </div>
-    <div class="text-right">
-        <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Estimated Total</p>
-        <p class="text-3xl font-black text-indigo-600">
-            <span class="text-lg font-medium">$</span> <span id="totalPrice">0</span>
-        </p>
-    </div>
-</div>
+    </nav>
 
-<div id="wishlist" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div class="max-w-5xl mx-auto px-4">
+        
+        <div id="mainView">
+            <!-- 建立新專案表單 -->
+            <div class="glass p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 mb-12 border border-white">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-xl">✨</div>
+                    <h2 class="text-xl font-bold text-gray-800">建立新專案</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-bold text-gray-400 mb-2 ml-2 uppercase tracking-widest">專案名稱</label>
+                        <input type="text" id="projName" placeholder="例如：日本賞楓購物趣" class="w-full border-0 bg-white p-4 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none font-bold shadow-inner transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 ml-2 uppercase tracking-widest">開始日期</label>
+                        <input type="date" id="projStart" class="w-full border-0 bg-white p-4 rounded-2xl outline-none text-sm text-gray-600 shadow-inner">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 ml-2 uppercase tracking-widest">結束日期</label>
+                        <input type="date" id="projEnd" class="w-full border-0 bg-white p-4 rounded-2xl outline-none text-sm text-gray-600 shadow-inner">
+                    </div>
+                    
+                    <div class="lg:col-span-3">
+                        <div class="relative flex items-center border-2 border-dashed border-gray-200 rounded-2xl p-4 bg-white/50 cursor-pointer hover:border-blue-300 transition h-16">
+                            <input type="file" id="projFile" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                            <span class="text-gray-500 text-sm font-bold flex items-center"><span class="text-xl mr-2">📸</span> 點擊上傳封面圖</span>
+                            <img id="projImgPreview" class="hidden h-12 w-12 object-cover rounded-xl ml-auto border-2 border-white shadow-sm">
+                        </div>
+                    </div>
+                    <button onclick="addProject()" id="projBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-500/20 transition transform active:scale-95">建立專案</button>
+                </div>
+            </div>
+
+            <div id="projectList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 專案清單由 JS 渲染 -->
+            </div>
+        </div>
+
+        <!-- 詳情頁面 -->
+        <div id="detailView" class="hidden-view">
+            <div class="glass p-8 md:p-10 rounded-[3rem] shadow-2xl shadow-blue-900/5 mb-10 border border-white">
+                <div class="flex flex-col md:flex-row justify-between items-start mb-10">
+                    <div class="mb-6 md:mb-0">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <span id="currentProjDate" class="inline-block bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase border border-blue-100"></span>
+                            <span id="daysRemainingBadge" class="inline-block text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase"></span>
+                        </div>
+                        <h2 id="currentProjTitle" class="text-4xl font-black text-gray-800 tracking-tight leading-tight"></h2>
+                        <button onclick="openEditModal()" class="mt-5 text-[11px] bg-white border border-gray-100 px-4 py-2 rounded-xl text-gray-500 font-bold hover:text-blue-600 hover:border-blue-100 transition shadow-sm flex items-center">
+                            <span class="mr-1.5">⚙️</span> 管理專案設定
+                        </button>
+                    </div>
+                    <div class="flex flex-col space-y-4 w-full md:w-auto">
+                        <div class="bg-gradient-to-br from-white to-indigo-50 p-5 rounded-3xl border border-white shadow-sm flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">🇯🇵</div>
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">日幣總預算</p>
+                                <p class="text-2xl font-black text-indigo-700">¥ <span id="detailTotalJPY">0</span></p>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-br from-white to-gray-50 p-5 rounded-3xl border border-white shadow-sm flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">🇹🇼</div>
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">台幣小計</p>
+                                <p class="text-xl font-black text-gray-600">$ <span id="detailTotalTWD">0</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 新增品項表單 -->
+                <div class="flex flex-col md:flex-row gap-4 p-2 bg-gray-50/50 rounded-[2rem] border border-gray-100">
+                    <input type="text" id="subItemName" placeholder="想買什麼商品？" class="flex-grow border-0 bg-transparent px-6 py-4 outline-none font-bold text-gray-700">
+                    <div class="flex bg-white rounded-2xl p-1 shadow-sm items-center">
+                        <select id="subItemCurrency" class="bg-transparent pl-4 pr-1 outline-none font-bold text-sm text-blue-600 border-0">
+                            <option value="JPY">JPY ¥</option>
+                            <option value="TWD">TWD $</option>
+                        </select>
+                        <input type="number" id="subItemPrice" placeholder="金額" class="w-24 border-0 bg-transparent p-3 outline-none font-black text-gray-800">
+                        <span class="text-gray-300 font-bold px-1">×</span>
+                        <input type="number" id="subItemQty" value="1" placeholder="數量" class="w-16 border-0 bg-transparent p-3 outline-none font-black text-gray-800 text-center">
+                    </div>
+                    <button onclick="addSubItem()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-blue-700 transition active:scale-95 shadow-lg shadow-blue-500/20">加入清單</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <section>
+                    <h3 class="text-xs font-black text-gray-400 mb-6 tracking-[0.2em] uppercase px-4 flex items-center">
+                        <span class="w-2 h-2 bg-amber-400 rounded-full mr-3 animate-pulse"></span> 待採購
+                    </h3>
+                    <div id="pendingItems" class="space-y-4"></div>
+                </section>
+                <section>
+                    <h3 class="text-xs font-black text-gray-400 mb-6 tracking-[0.2em] uppercase px-4 flex items-center">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span> 已放入籃子
+                    </h3>
+                    <div id="completedItems" class="space-y-4 opacity-70"></div>
+                </section>
+            </div>
+        </div>
     </div>
 
-        <div id="wishlist" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    <!-- 專案編輯彈窗 -->
+    <div id="editModal" class="modal">
+        <div class="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md border border-gray-100 mx-4">
+            <h3 class="text-2xl font-black mb-8 text-gray-800">修改專案</h3>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 mb-2 ml-1 uppercase tracking-widest">專案名稱</label>
+                    <input type="text" id="editProjName" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold border-0 focus:ring-2 focus:ring-blue-400">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 mb-2 ml-1 uppercase tracking-widest">開始日期</label>
+                        <input type="date" id="editProjStart" class="w-full bg-gray-50 p-4 rounded-2xl outline-none text-sm border-0 focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 mb-2 ml-1 uppercase tracking-widest">結束日期</label>
+                        <input type="date" id="editProjEnd" class="w-full bg-gray-50 p-4 rounded-2xl outline-none text-sm border-0 focus:ring-2 focus:ring-blue-400">
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-3 mt-10">
+                <button id="saveProjBtn" onclick="saveEditProject()" class="w-full py-4 font-black bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition">儲存變更</button>
+                <div class="flex gap-3">
+                    <button onclick="closeEditModal()" class="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition">取消</button>
+                    <button id="deleteProjBtn" onclick="deleteProject()" class="flex-1 py-4 font-bold text-red-400 hover:text-red-600 transition">⚠️ 刪除專案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 品項編輯彈窗 -->
+    <div id="itemEditModal" class="modal">
+        <div class="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md border border-gray-100 mx-4">
+            <h3 class="text-2xl font-black mb-8 text-gray-800">編輯商品品項</h3>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 mb-2 ml-1 uppercase tracking-widest">商品名稱</label>
+                    <input type="text" id="editItemName" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold border-0 focus:ring-2 focus:ring-blue-400">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 mb-2 ml-1 uppercase tracking-widest">幣別</label>
+                        <select id="editItemCurrency" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold border-0">
+                            <option value="JPY">JPY ¥</option>
+                            <option value="TWD">TWD $</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 mb-2 ml-1 uppercase tracking-widest">單價</label>
+                        <input type="number" id="editItemPrice" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold border-0 focus:ring-2 focus:ring-blue-400">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-400 mb-2 ml-1 uppercase tracking-widest">數量</label>
+                    <input type="number" id="editItemQty" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold border-0 focus:ring-2 focus:ring-blue-400">
+                </div>
+            </div>
+            <div class="flex flex-col gap-3 mt-10">
+                <button onclick="saveItemEdit()" class="w-full py-4 font-black bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 transition">更新資料</button>
+                <div class="flex gap-3">
+                    <button onclick="closeItemEditModal()" class="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition">取消</button>
+                    <button onclick="deleteItem()" class="flex-1 py-4 font-bold text-red-400 hover:text-red-600 transition">刪除此項</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-// 1. 替換成你剛剛部署得到的 Google 網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbye8AxMaYQd-1nyZnhPKbd_7QQ1FaQ9U7aquPjFo2hBKHZXnnz0G3ngRy6A8ayiQkST/exec"; 
+        // --- 核心配置 ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbz--Ib1_8Ldl_W0a7ijehaXgZRqGuEJtq-69U5l98FcaeAmXo3_QD1Aeaz7TLgcQM7j/exec";
+        
+        let allProjects = []; 
+        let currentProjIndex = -1;
+        let currentItemIndex = -1;
+        let tempBase64 = "";
 
-        let items = [];
-        let base64Image = "";
-
-// 圖片轉 Base64 邏輯
-document.getElementById('itemFile')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onloadend = () => { base64Image = reader.result; };
-    if (file) reader.readAsDataURL(file);
-});
-
-// 2. 從雲端抓取資料的功能
-async function render() {
-    const list = document.getElementById('wishlist');
-    list.innerHTML = '<div class="col-span-full text-center py-10">☁️ 正在連線雲端資料庫...</div>';
-    
-    try {
-        // 在網址後加上隨機參數，防止瀏覽器讀取舊的暫存檔
-        const finalUrl = API_URL + "?nocache=" + new Date().getTime();
-        
-        // 這裡不需要加 mode: 'no-cors'，因為我們要讀取 JSON 資料
-        const response = await fetch(finalUrl);
-        
-        if (!response.ok) throw new Error('連線回應不正常');
-        
-        items = await response.json();
-        
-        if (items.length === 0) {
-            list.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400">目前清單空空的，快去新增吧！</div>';
-            return;
+        // 工具函式
+        function formatDate(dateStr) {
+            if (!dateStr) return "";
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return dateStr;
+                return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+            } catch(e) { return dateStr; }
         }
 
-        list.innerHTML = '';
-        let total = 0;
-        items.forEach((item, index) => {
-            total += Number(item.price || 0);
-            const symbol = item.currency === "JPY" ? "¥" : "$";
-            list.innerHTML += `
-                <div class="item-card bg-white rounded-3xl shadow-lg overflow-hidden border border-gray-100 flex flex-col">
-                    <img src="${item.img || 'https://via.placeholder.com/400x300'}" class="w-full h-40 object-cover">
-                    <div class="p-4 flex-grow">
-                        <h3 class="font-bold text-lg text-gray-800">${item.name}</h3>
-                        <p class="text-xl font-black text-red-500">${symbol} ${Number(item.price).toLocaleString()}</p>
-                        <a href="${item.url}" target="_blank" class="text-blue-500 text-xs underline block mt-2">查看連結</a>
-                    </div>
-                </div>`;
+        function getRemainingDays(startStr, endStr) {
+            if (!startStr || !endStr) return { text: "日期未定", color: "bg-gray-100 text-gray-400 border border-gray-200" };
+            const now = new Date(); now.setHours(0, 0, 0, 0);
+            const start = new Date(startStr); const end = new Date(endStr);
+            if (now < start) {
+                const diff = Math.ceil((start - now) / 86400000);
+                return { text: `距離開始還有 ${diff} 天`, color: "bg-amber-50 text-amber-600 border border-amber-100" };
+            } else if (now <= end) {
+                const diff = Math.ceil((end - now) / 86400000);
+                return { text: `剩餘 ${diff} 天`, color: "bg-emerald-50 text-emerald-600 border border-emerald-100" };
+            } else {
+                return { text: "活動已結束", color: "bg-gray-100 text-gray-400 border border-gray-200" };
+            }
+        }
+
+        // 檔案處理
+        document.getElementById('projFile')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onloadend = () => { 
+                tempBase64 = reader.result;
+                const preview = document.getElementById('projImgPreview');
+                preview.src = tempBase64; preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
         });
-        document.getElementById('totalPrice').innerText = total.toLocaleString();
-    } catch (e) {
-        console.log("錯誤詳情:", e); // 這行會把真正的錯誤原因印在 F12 控制台
-        list.innerHTML = '<div class="text-red-500 text-center col-span-full">讀取失敗，請確認 Google 網址正確且權限已開</div>';
-    }
-}
 
-// 3. 傳送到雲端的功能
-async function addItem() {
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerText = "儲存中...";
+        // 獲取數據
+        async function fetchAllData() {
+            const list = document.getElementById('projectList');
+            if (document.getElementById('detailView').classList.contains('hidden-view') && !list.innerHTML.includes('animate-spin')) {
+                list.innerHTML = `<div class="col-span-full flex flex-col items-center py-20"><div class="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div><p class="text-gray-400 font-bold">同步雲端資料中...</p></div>`;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}?t=${Date.now()}`);
+                const rawData = await response.json();
+                allProjects = rawData.map(row => {
+                    let items = [];
+                    try { items = row.url ? JSON.parse(row.url) : []; } catch(e) { items = []; }
+                    return {
+                        name: row.name || "未命名專案",
+                        price: row.price || 0,
+                        img: row.img || "",
+                        start: formatDate(row.start),
+                        end: formatDate(row.end),
+                        subItems: Array.isArray(items) ? items : []
+                    };
+                });
+                renderProjectList();
+            } catch (e) {
+                if (list) list.innerHTML = '<div class="col-span-full text-center py-20 text-red-400 font-bold">⚠️ 無法連線至伺服器</div>';
+            }
+        }
 
-    const data = {
-        name: document.getElementById('itemName').value,
-        price: document.getElementById('itemPrice').value,
-        currency: document.getElementById('currency').value,
-        url: document.getElementById('itemUrl').value,
-        img: base64Image || "https://via.placeholder.com/400x300?text=No+Image",
-        start: document.getElementById('startDate').value,
-        end: document.getElementById('endDate').value
-    };
+        function renderProjectList() {
+            const list = document.getElementById('projectList');
+            if (!list) return;
+            list.innerHTML = '';
+            if (allProjects.length === 0) {
+                list.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400 font-bold">目前沒有任何購物專案</div>`;
+                return;
+            }
+            allProjects.forEach((proj, index) => {
+                const twd = proj.subItems.reduce((acc, c) => c.currency === "TWD" ? acc + (Number(c.price || 0) * (c.qty || 1)) : acc, 0);
+                const jpy = proj.subItems.reduce((acc, c) => c.currency !== "TWD" ? acc + (Number(c.price || 0) * (c.qty || 1)) : acc, 0);
+                const remaining = getRemainingDays(proj.start, proj.end);
+                list.innerHTML += `
+                    <div onclick="openProject(${index})" class="item-card bg-white flex flex-col h-full shadow-lg shadow-gray-200/50">
+                        <div class="h-48 bg-gray-100 overflow-hidden relative">
+                            <img src="${proj.img || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600'}" class="w-full h-full object-cover">
+                            <div class="absolute top-4 left-4 ${remaining.color} backdrop-blur-md px-3 py-1 rounded-xl shadow-sm text-[9px] font-black uppercase tracking-wider">
+                                ${remaining.text}
+                            </div>
+                        </div>
+                        <div class="p-8">
+                            <h3 class="text-xl font-black text-gray-800 mb-2 line-clamp-1">${proj.name}</h3>
+                            <p class="text-[10px] font-bold text-gray-400 mb-4 tracking-tighter">${proj.start || '--'} → ${proj.end || '--'}</p>
+                            <div class="flex justify-between items-end pt-5 border-t border-gray-50">
+                                <div class="space-y-1">
+                                    <div class="text-2xl font-black text-indigo-600 leading-none">¥ ${jpy.toLocaleString()}</div>
+                                    <div class="text-xs font-bold text-gray-400">$ ${twd.toLocaleString()}</div>
+                                </div>
+                                <span class="bg-gray-100 px-3 py-1 rounded-lg text-xs font-black text-gray-500">${proj.subItems.length} 品項</span>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
 
-    try {
-        await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify(data)
-        });
-        // 清空輸入
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemPrice').value = '';
-        base64Image = "";
-        await render(); // 重新讀取雲端
-    } catch (e) {
-        alert("儲存失敗");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "加入清單";
-    }
-}
+        function openProject(index) {
+            currentProjIndex = index;
+            document.getElementById('mainView').classList.add('hidden-view');
+            document.getElementById('detailView').classList.remove('hidden-view');
+            document.getElementById('backBtn').classList.remove('hidden-view');
+            updateDetailUI();
+            renderSubItems();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
-// 網頁開啟立刻讀取
-render();
+        function updateDetailUI() {
+            const proj = allProjects[currentProjIndex];
+            if (!proj) return;
+            document.getElementById('currentProjTitle').innerText = proj.name;
+            document.getElementById('currentProjDate').innerText = (proj.start && proj.end) ? `${proj.start} → ${proj.end}` : "尚未設定日期";
+            const remaining = getRemainingDays(proj.start, proj.end);
+            const badge = document.getElementById('daysRemainingBadge');
+            badge.innerText = remaining.text;
+            badge.className = `inline-block text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase ${remaining.color}`;
+        }
+
+        function renderSubItems() {
+            if (currentProjIndex === -1) return;
+            const proj = allProjects[currentProjIndex];
+            const pending = document.getElementById('pendingItems');
+            const completed = document.getElementById('completedItems');
+            pending.innerHTML = ''; completed.innerHTML = '';
+            let sumTWD = 0, sumJPY = 0;
+
+            proj.subItems.forEach((item, i) => {
+                const qty = item.qty || 1;
+                const total = Number(item.price || 0) * qty;
+                if (item.currency === "TWD") sumTWD += total; else sumJPY += total;
+                
+                const html = `
+                    <div class="bg-white p-5 rounded-3xl shadow-sm flex justify-between items-center border border-gray-50 hover:border-indigo-200 transition">
+                        <div class="flex items-center flex-grow cursor-pointer" onclick="openItemEdit(${i})">
+                            <input type="checkbox" onclick="event.stopPropagation(); toggleBuy(${i})" ${item.bought ? 'checked' : ''} class="custom-checkbox mr-4">
+                            <div class="${item.bought ? 'strikethrough' : ''}">
+                                <p class="font-black text-gray-700 leading-tight">${item.name}</p>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">${item.currency} ${Number(item.price).toLocaleString()} × ${qty}</p>
+                            </div>
+                        </div>
+                        <span class="font-black text-lg ${item.currency === 'TWD' ? 'text-gray-500' : 'text-indigo-600'}">
+                            <span class="text-xs mr-0.5">${item.currency === 'TWD' ? '$' : '¥'}</span>${total.toLocaleString()}
+                        </span>
+                    </div>`;
+                if (item.bought) completed.innerHTML += html; else pending.innerHTML += html;
+            });
+
+            document.getElementById('detailTotalTWD').innerText = sumTWD.toLocaleString();
+            document.getElementById('detailTotalJPY').innerText = sumJPY.toLocaleString();
+        }
+
+        async function addProject() {
+            const name = document.getElementById('projName').value;
+            const btn = document.getElementById('projBtn');
+            if (!name) return;
+            btn.disabled = true; btn.innerText = "儲存中...";
+            const payload = { 
+                name, url: "[]", img: tempBase64, 
+                start: document.getElementById('projStart').value, 
+                end: document.getElementById('projEnd').value, price: 0 
+            };
+            
+            try {
+                await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
+                document.getElementById('projName').value = "";
+                document.getElementById('projImgPreview').classList.add('hidden');
+                tempBase64 = "";
+                setTimeout(() => { fetchAllData(); btn.disabled = false; btn.innerText = "建立專案"; }, 1500);
+            } catch(e) {
+                btn.disabled = false; btn.innerText = "重新嘗試";
+            }
+        }
+
+        // --- 強制除錯版：刪除專案 ---
+        async function deleteProject() {
+            try {
+                // 第一步：立刻嘗試彈出確認視窗
+                const proj = allProjects[currentProjIndex];
+                if (!proj) {
+                    console.error("無法取得當前專案，索引值為：", currentProjIndex);
+                    alert("錯誤：找不到專案資訊，請重新整理頁面。");
+                    return;
+                }
+
+                if (!confirm(`⚠️ 警告！\n\n您確定要刪除「${proj.name}」專案嗎？\n刪除後雲端資料將無法找回。`)) {
+                    return;
+                }
+
+                // 第二步：UI 立即變更（讓使用者知道程式有在跑）
+                const btn = document.getElementById('deleteProjBtn');
+                const originalText = btn.innerText;
+                btn.disabled = true;
+                btn.innerText = "🗑️ 刪除中...";
+
+                // 第三步：發送請求
+                const payload = { 
+                    action: "delete", 
+                    name: proj.name 
+                };
+
+                await fetch(API_URL, { 
+                    method: "POST", 
+                    mode: "no-cors", 
+                    body: JSON.stringify(payload) 
+                });
+
+                // 第四步：完成後處理
+                console.log("已送出刪除請求");
+                closeEditModal();
+                showMainView();
+
+            } catch (err) {
+                console.error("JavaScript 報錯：", err);
+                alert("執行刪除時發生錯誤：" + err.message);
+                const btn = document.getElementById('deleteProjBtn');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "⚠️ 刪除專案";
+                }
+            }
+        }
+
+        async function addSubItem() {
+            const name = document.getElementById('subItemName').value;
+            const price = document.getElementById('subItemPrice').value;
+            const qty = document.getElementById('subItemQty').value || 1;
+            const curr = document.getElementById('subItemCurrency').value;
+            if (!name || !price) return;
+            allProjects[currentProjIndex].subItems.push({ name, price, qty: Number(qty), currency: curr, bought: false });
+            renderSubItems();
+            await syncCurrentProject();
+            document.getElementById('subItemName').value = "";
+            document.getElementById('subItemPrice').value = "";
+            document.getElementById('subItemQty').value = "1";
+        }
+
+        async function toggleBuy(i) {
+            allProjects[currentProjIndex].subItems[i].bought = !allProjects[currentProjIndex].subItems[i].bought;
+            renderSubItems();
+            await syncCurrentProject();
+        }
+
+        function openItemEdit(i) {
+            currentItemIndex = i;
+            const item = allProjects[currentProjIndex].subItems[i];
+            document.getElementById('editItemName').value = item.name;
+            document.getElementById('editItemCurrency').value = item.currency || "JPY";
+            document.getElementById('editItemPrice').value = item.price;
+            document.getElementById('editItemQty').value = item.qty || 1;
+            document.getElementById('itemEditModal').classList.add('active');
+        }
+
+        function closeItemEditModal() { document.getElementById('itemEditModal').classList.remove('active'); }
+
+        async function saveItemEdit() {
+            const item = allProjects[currentProjIndex].subItems[currentItemIndex];
+            item.name = document.getElementById('editItemName').value;
+            item.currency = document.getElementById('editItemCurrency').value;
+            item.price = document.getElementById('editItemPrice').value;
+            item.qty = Number(document.getElementById('editItemQty').value);
+            closeItemEditModal();
+            renderSubItems();
+            await syncCurrentProject();
+        }
+
+        async function deleteItem() {
+            if(!confirm("刪除此商品？")) return;
+            allProjects[currentProjIndex].subItems.splice(currentItemIndex, 1);
+            closeItemEditModal();
+            renderSubItems();
+            await syncCurrentProject();
+        }
+
+        function openEditModal() {
+            const proj = allProjects[currentProjIndex];
+            if (!proj) return;
+            document.getElementById('editProjName').value = proj.name;
+            const toISO = (d) => {
+                if(!d) return '';
+                const parts = d.split('/');
+                if(parts.length === 3) return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+                return d;
+            };
+            document.getElementById('editProjStart').value = toISO(proj.start);
+            document.getElementById('editProjEnd').value = toISO(proj.end);
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() { document.getElementById('editModal').classList.remove('active'); }
+
+        async function saveEditProject() {
+            const proj = allProjects[currentProjIndex];
+            const oldName = proj.name;
+            const btn = document.getElementById('saveProjBtn');
+            btn.disabled = true; btn.innerText = "儲存中...";
+            
+            proj.name = document.getElementById('editProjName').value;
+            proj.start = formatDate(document.getElementById('editProjStart').value);
+            proj.end = formatDate(document.getElementById('editProjEnd').value);
+            
+            closeEditModal();
+            updateDetailUI();
+            await syncCurrentProject(oldName);
+            btn.disabled = false; btn.innerText = "儲存變更";
+        }
+
+        async function syncCurrentProject(oldName = null) {
+            if (currentProjIndex === -1) return;
+            const proj = allProjects[currentProjIndex];
+            const payload = {
+                name: oldName || proj.name,
+                newName: (oldName && oldName !== proj.name) ? proj.name : null,
+                url: JSON.stringify(proj.subItems),
+                img: proj.img,
+                start: proj.start,
+                end: proj.end,
+                price: proj.subItems.reduce((acc, c) => acc + (Number(c.price) * (c.qty || 1)), 0)
+            };
+            try {
+                await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
+            } catch(e) {
+                console.error("Sync error:", e);
+            }
+        }
+
+        function showMainView() {
+            currentProjIndex = -1;
+            document.getElementById('mainView').classList.remove('hidden-view');
+            document.getElementById('detailView').classList.add('hidden-view');
+            document.getElementById('backBtn').classList.add('hidden-view');
+            fetchAllData(); 
+        }
+
+        window.onload = fetchAllData;
     </script>
 </body>
-
 </html>
-
-
-
-
