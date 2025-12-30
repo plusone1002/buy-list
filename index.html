@@ -78,7 +78,7 @@ async function render() {
     list.innerHTML = '<div class="col-span-full text-center py-10">☁️ 正在連線雲端資料庫...</div>';
     
     try {
-        const response = await fetch(API_URL);
+        const response = await fetch(API_URL, { method: 'GET' });
         items = await response.json();
         
         list.innerHTML = '';
@@ -142,3 +142,4 @@ render();
 </body>
 
 </html>
+
